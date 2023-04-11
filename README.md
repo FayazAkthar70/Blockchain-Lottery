@@ -1,2 +1,4 @@
 # Blockchain-Lottery
-A smart Lottery built using hardhat. 
+
+A smart Lottery built using hardhat.
+test
