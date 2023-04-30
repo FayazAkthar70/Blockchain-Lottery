@@ -10,7 +10,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deployer } = await getNamedAccounts();
   const chainId = network.config.chainId;
   const FUND_AMOUNT = ethers.utils.parseEther("1");
-
+  let vrfCoordinatorV2Address, subscriptionId, vrfCoordinatorV2Mock;
   if (chainId == 31337) {
     vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock");
     vrfCoordinatorV2Address = vrfCoordinatorV2Mock.address;
@@ -38,7 +38,13 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     args: args,
     waitConfirmations: network.config.blockConfirmations || 1,
   });
-
+  if (developmentChains.includes(network.name)) {
+    const vrfCoordinatorV2Mock = await ethers.getContract(
+      "VRFCoordinatorV2Mock"
+    );
+    console.log(`subscription id is ${subscriptionId}`);
+    await vrfCoordinatorV2Mock.addConsumer(subscriptionId, Lottery.address);
+  }
   if (
     !developmentChains.includes(network.name) &&
     process.env.ETHERSCAN_API_KEY

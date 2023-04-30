@@ -3,7 +3,7 @@ pragma solidity ^0.8.7;
 
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/AutomationCompatibleInterface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 
 error sendMoreETH();
 error lotteryTransferFailed();
@@ -14,7 +14,7 @@ error Raffle__UpkeepNotNeeded(
     uint256 raffleState
 );
 
-contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
+contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
     enum LotteryState {
         OPEN,
         CALCULATING
@@ -36,25 +36,25 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
     uint256 private immutable i_interval;
 
     event lotteryEnter(address indexed player);
-    event requestLotteryWinner(uint256 indexed id);
+    event requestLotteryWinner(uint256 indexed requestId);
     event winnerPicked(address indexed winner);
 
     constructor(
         address vrfCoordinatorV2,
-        uint256 entranceFee,
-        bytes32 keyHash,
-        uint256 interval,
         uint64 subscriptionId,
+        bytes32 gasLane, // keyHash
+        uint256 interval,
+        uint256 entranceFee,
         uint32 callbackGasLimit
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_vrfcoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
-        i_entranceFee = entranceFee;
-        i_keyHash = keyHash;
+        i_keyHash = gasLane;
         i_interval = interval;
         i_subscriptionId = subscriptionId;
-        i_callbackGasLimit = callbackGasLimit;
+        i_entranceFee = entranceFee;
         lotteryState = LotteryState.OPEN;
         lastTimeStamp = block.timestamp;
+        i_callbackGasLimit = callbackGasLimit;
     }
 
     function enterLottery() public payable {
@@ -95,7 +95,6 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
             );
         }
         lotteryState = LotteryState.CALCULATING;
-
         uint256 requestId = i_vrfcoordinator.requestRandomWords(
             i_keyHash,
             i_subscriptionId,
@@ -103,6 +102,7 @@ contract Lottery is VRFConsumerBaseV2, AutomationCompatibleInterface {
             i_callbackGasLimit,
             NUM_WORDS
         );
+
         emit requestLotteryWinner(requestId);
     }
 
